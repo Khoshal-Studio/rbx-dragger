@@ -10,7 +10,7 @@ local UserInputService = game:GetService("UserInputService")
 
 ---------------------------------------------------------------------------------------------------------------
 
-local types = require(script:WaitForChild("dragger_types"))
+local types : nil = require(script:WaitForChild("dragger_types"))
 
 export type dragger_info = types.dragger_info
 export type dragger = types.dragger
@@ -25,8 +25,8 @@ local function update(input : InputObject, drag_start : Vector3, start_pos : UDi
     if currently_dragging then
         local self = currently_dragging
 
-        local delta = input.Position - drag_start
-        local new_position = UDim2.new(start_pos.X.Scale, start_pos.X.Offset + delta.X, start_pos.Y.Scale, start_pos.Y.Offset + delta.Y)
+        local delta : Vector3 = input.Position - drag_start
+        local new_position : UDim2 = UDim2.new(start_pos.X.Scale, start_pos.X.Offset + delta.X, start_pos.Y.Scale, start_pos.Y.Offset + delta.Y)
         if self.update and self.target then
             self.target.Position = new_position
         end
@@ -37,7 +37,7 @@ local function update(input : InputObject, drag_start : Vector3, start_pos : UDi
 end
 
 local dragger = {
-    __newindex = function(_t, _k, _v)
+    __newindex = function(_t, _k, _v): ()
         error("Cannot add properties to a dragger.")
     end
 }
@@ -46,7 +46,7 @@ dragger.__index = dragger
 --[=[
     Enables the dragger to start dragging the target object.
 ]=]--
-dragger.enable = function(self : dragger, ctrl : boolean?)
+dragger.enable = function(self : dragger, ctrl : boolean?) : ()
     local object : GuiObject = self.object
     local drag_input : InputObject = nil
     local drag_start : Vector3 = nil
@@ -60,7 +60,7 @@ dragger.enable = function(self : dragger, ctrl : boolean?)
             end
             preparing_to_drag = true
 
-            local connection 
+            local connection : RBXScriptConnection = nil
             connection = input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End and (self.dragging or preparing_to_drag) then
                     self.dragging = false
@@ -76,13 +76,13 @@ dragger.enable = function(self : dragger, ctrl : boolean?)
         end
     end))
 
-    rawset(self, "input_changed", object.InputChanged:Connect(function(input : InputObject)
+    rawset(self, "input_changed", object.InputChanged:Connect(function(input : InputObject) : ()
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             drag_input = input
         end
     end))
 
-    rawset(self, "input_changed_2", UserInputService.InputChanged:Connect(function(input : InputObject)
+    rawset(self, "input_changed_2", UserInputService.InputChanged:Connect(function(input : InputObject) : ()
         if object.Parent == nil then
             self:disable()
             return
@@ -116,7 +116,7 @@ dragger.enable = function(self : dragger, ctrl : boolean?)
             self.drag_count += 1
             if self.drag_count % self.rate_limit ~= 0 then return end
 
-            local new_position = update(input, drag_start, start_pos)
+            local new_position : UDim2? = update(input, drag_start, start_pos)
 
             if self.dragged then
                 self.dragged:Fire(new_position)
@@ -131,7 +131,7 @@ end
 --[=[
     Disables the dragger from dragging the target object.
 ]=]--
-dragger.disable = function(self : dragger)
+dragger.disable = function(self : dragger) : ()
     self.input_began:Disconnect()
     self.input_changed:Disconnect()
     self.input_changed_2:Disconnect()
@@ -170,9 +170,7 @@ module.new = function(info : dragger_info) : dragger
         enabled = false,
     }
 
-    setmetatable(self, dragger)
-    local _dragger = self :: any
-    return _dragger :: dragger
+    return (setmetatable(self, dragger) :: any) :: dragger
 end
 
 -------------------------------------------------------------------------------------
