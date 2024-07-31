@@ -1,1 +1,1 @@
-{"name":"dragger","className":"Folder","filePaths":["default.project.json"],"children":[{"name":"dragger","className":"ModuleScript","filePaths":["src\\dragger\\init.luau"],"children":[{"name":"dragger_types","className":"ModuleScript","filePaths":["src\\dragger\\dragger_types.luau"]}]}]}
+{"name":"dragger","className":"ModuleScript","filePaths":["src\\init.luau","default.project.json"],"children":[{"name":"dragger_types","className":"ModuleScript","filePaths":["src\\dragger_types.luau"]}]}
