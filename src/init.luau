@@ -35,6 +35,7 @@ export type prop<T> = props.prop<T>
 export type signal = signal.signal
 export type restricted_signal = signal.restricted_signal
 export type fire<T> = signal.fire<T>
+
 ---------------------------------------------------------------------------------------------------------------
 
 local function update(input : InputObject, drag_start : Vector3, start_pos : UDim2) : UDim2?
@@ -44,12 +45,13 @@ local function update(input : InputObject, drag_start : Vector3, start_pos : UDi
         local delta : Vector3 = input.Position - drag_start
         local new_position : UDim2 = UDim2.new(start_pos.X.Scale, start_pos.X.Offset + delta.X, start_pos.Y.Scale, start_pos.Y.Offset + delta.Y)
 
-        if self.update.get() and self.target.get() then
+        if self.update.get() then
             self.target.get().Position = new_position
         end
 
         return new_position
     end
+
     return nil
 end
 
@@ -69,6 +71,7 @@ local function dragger_enable(self : internal_dragger, key_code : Enum.KeyCode?)
             if key_code and not UserInputService:IsKeyDown(key_code) then
                 return
             end
+
             preparing_to_drag = true
 
             local connection : RBXScriptConnection = nil
@@ -77,7 +80,7 @@ local function dragger_enable(self : internal_dragger, key_code : Enum.KeyCode?)
                     self.dragging_internal.set(false)
                     connection:Disconnect()
 
-                    if self.drag_ended and not preparing_to_drag then
+                    if not preparing_to_drag then
                         self.drag_end_internal:Fire()
                     end
 
@@ -105,39 +108,32 @@ local function dragger_enable(self : internal_dragger, key_code : Enum.KeyCode?)
                 return
             end
 
+            self.drag_start_internal:Fire()
+            self.dragging_internal.set(true)
+
             preparing_to_drag = false
-
-            if self.drag_started then
-                self.drag_started_fire()
-            end
-
-            self.dragging_set(true)
-
             currently_dragging = self
             drag_start = input.Position
             start_pos = self.target.get().Position
         end
 
-        if input == drag_input and self.dragging and self.rate_limit.get() > 1 then
+        if input == drag_input and self.dragging and self.rate_limit.get() ~= 1 then
             if key_code and not UserInputService:IsKeyDown(key_code) then
-                self.dragging_set(false)
+                self.dragging_internal.set(false)
                 return
             end
 
-            self.drag_count_set(self.drag_count.get() + 1)
+            self.drag_count_internal.set(self.drag_count.get() + 1)
             if self.drag_count.get() % self.rate_limit.get() ~= 0 then
                 return
             end
 
             local new_position : UDim2? = update(input, drag_start, start_pos)
-
-            if self.dragged then
-                self.dragged_fire(new_position)
-            end
+            self.dragged_internal:Fire(new_position)
         end
     end)
 
-    self.enabled_set(true)
+    self.enabled_internal.set(true)
 end
 
 
@@ -150,13 +146,13 @@ local function disable_dragger(self : internal_dragger) : ()
     self.input_changed_2:Disconnect()
 
     if self.dragging.get() then
-        self.dragging_set(false)
+        self.dragging_internal.set(false)
         currently_dragging = nil
 
-        self.drag_ended_fire()
+        self.drag_end_internal:Fire()
     end
 
-    self.enabled_set(false)
+    self.enabled_internal.set(false)
 end
 
 local function valid_dragger_info(info : dragger_info) : boolean
@@ -187,10 +183,21 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
 
     --[[----------------------------------------------------------------------]]--
 
-    local self : dragger
+    local dragger : internal_dragger
+    
+    --[[----------------------------------------------------------------------]]--
 
-    local rate_limit_set = function(new_value : number) : ()
-        local current_value : number = self.rate_limit.get()
+    local dragging_internal = props(false)
+    local drag_count_internal = props(0)
+    local enabled_internal = props(false)
+    local drag_start_internal = signal()
+    local drag_end_internal = signal()
+    local dragged_internal = signal()
+
+    --[[----------------------------------------------------------------------]]--
+
+    local rate_limit_set = function(new_value : number) : number
+        local current_value : number = dragger.rate_limit.get()
 
         if new_value < 1 then
             warn("Rate limit must be greater than or equal to 1.")
@@ -205,37 +212,43 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         return new_value
     end
 
-    local dragging_attr, dragging_fire, dragging_set = immutable(false)
-    local drag_count_attr, drag_count_fire, drag_count_set = immutable(0)
 
+    local function object_changed(new : GuiObject, previous : GuiObject?)
+        dragger:disable()
 
-    local function target_changed(new : GuiObject, previous : GuiObject?)
-        self.
-        if self.enabled.get() then
-            
+        if dragger.enabled.get() then
+            dragger:enable()
         end
     end
 
     --[[----------------------------------------------------------------------]]--
 
-    self = {
-        object = info.object,
-        target = info.target or info.object,
+    dragger = {
+        input_began = nil,
+        input_changed = nil,
+        input_changed_2 = nil,
 
-        drag_started = Instance.new('BindableEvent'),
-        dragged = Instance.new("BindableEvent"),
-        drag_ended = Instance.new("BindableEvent"),
+        drag_start_internal = drag_start_internal,
+        drag_end_internal = drag_end_internal,
+        dragged_internal = dragged_internal,
 
-        rate_limit = mutable(info.rate_limit or 1, nil, rate_limit_set),
-        update = mutable(info.update or true),
+        enabled_internal = enabled_internal,
+        dragging_internal = dragging_internal,
+        drag_count_internal = drag_count_internal,
 
-        dragging = mutable(false),
-        drag_count = ,
-        enabled = false,
+        object = props(info.object),
+        target = props(info.target or info.object),
 
-        input_began = nil :: any,
-        input_changed = nil :: any,
-        input_changed_2 = nil :: any,
+        drag_started = drag_start_internal.Restricted,
+        dragged = dragged_internal.Restricted,
+        drag_ended = drag_end_internal.Restricted,
+
+        rate_limit = props(info.rate_limit or 1, nil, rate_limit_set),
+        update = props(info.update or true),
+
+        dragging = dragging_internal.immutable,
+        drag_count = drag_count_internal.immutable,
+        enabled = enabled_internal.immutable,
 
         enable = function(self : any, key_code : Enum.KeyCode?) : ()
             dragger_enable(self)
@@ -244,9 +257,15 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         disable = function(self : any) : ()
             disable_dragger(self)
         end
-    } :: dragger
+    } :: any
 
-    return self
+    --[[----------------------------------------------------------------------]]--
+
+    dragger.object.changed:Connect(object_changed)
+
+    --[[----------------------------------------------------------------------]]--
+
+    return true, dragger
 end
 
 -------------------------------------------------------------------------------------
