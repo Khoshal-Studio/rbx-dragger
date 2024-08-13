@@ -2,7 +2,7 @@
 
 -------------------------------------------------------------------------------------------
 
-local signal = require(script.Parent:WaitForChild("signal"))
+local signal = require(script.Parent.Parent:WaitForChild("signal"))
 
 -------------------------------------------------------------------------------------------
 
