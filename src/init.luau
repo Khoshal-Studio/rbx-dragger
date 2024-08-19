@@ -70,7 +70,6 @@ local function dragger_enable(self : internal_dragger, key_code : Enum.KeyCode?)
             if key_code and not UserInputService:IsKeyDown(key_code) then
                 return
             end
-            print("preparing_to_drag")
 
             preparing_to_drag = true
 
@@ -108,8 +107,6 @@ local function dragger_enable(self : internal_dragger, key_code : Enum.KeyCode?)
                 return
             end
 
-            print("dragging")
-
             self.drag_start_internal:Fire()
             self.dragging_internal.set(true)
 
@@ -121,12 +118,9 @@ local function dragger_enable(self : internal_dragger, key_code : Enum.KeyCode?)
 
         if input == drag_input and self.dragging.get() and self.rate_limit.get() then
             if key_code and not UserInputService:IsKeyDown(key_code) then
-                print("dragging1")
                 self.dragging_internal.set(false)
                 return
             end
-
-            print("dragging2")
 
             self.drag_count_internal.set(self.drag_count.get() + 1)
             if self.drag_count.get() % self.rate_limit.get() ~= 0 then
