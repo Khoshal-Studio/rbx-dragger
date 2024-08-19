@@ -44,7 +44,6 @@ local function update(input : InputObject, drag_start : Vector3, start_pos : UDi
 
         local delta : Vector3 = input.Position - drag_start
         local new_position : UDim2 = UDim2.new(start_pos.X.Scale, start_pos.X.Offset + delta.X, start_pos.Y.Scale, start_pos.Y.Offset + delta.Y)
-
         if self.update.get() then
             self.target.get().Position = new_position
         end
@@ -71,12 +70,13 @@ local function dragger_enable(self : internal_dragger, key_code : Enum.KeyCode?)
             if key_code and not UserInputService:IsKeyDown(key_code) then
                 return
             end
+            print("preparing_to_drag")
 
             preparing_to_drag = true
 
             local connection : RBXScriptConnection = nil
             connection = input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End and (self.dragging or preparing_to_drag) then
+                if input.UserInputState == Enum.UserInputState.End and (self.dragging.get() or preparing_to_drag) then
                     self.dragging_internal.set(false)
                     connection:Disconnect()
 
@@ -108,6 +108,8 @@ local function dragger_enable(self : internal_dragger, key_code : Enum.KeyCode?)
                 return
             end
 
+            print("dragging")
+
             self.drag_start_internal:Fire()
             self.dragging_internal.set(true)
 
@@ -117,11 +119,14 @@ local function dragger_enable(self : internal_dragger, key_code : Enum.KeyCode?)
             start_pos = self.target.get().Position
         end
 
-        if input == drag_input and self.dragging and self.rate_limit.get() ~= 1 then
+        if input == drag_input and self.dragging.get() and self.rate_limit.get() then
             if key_code and not UserInputService:IsKeyDown(key_code) then
+                print("dragging1")
                 self.dragging_internal.set(false)
                 return
             end
+
+            print("dragging2")
 
             self.drag_count_internal.set(self.drag_count.get() + 1)
             if self.drag_count.get() % self.rate_limit.get() ~= 0 then
