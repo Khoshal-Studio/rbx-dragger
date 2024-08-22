@@ -14,9 +14,8 @@ type restricted_signal = signal.restricted_signal
 export type get<T> = (...any?) -> T
 export type set<T> = (new_value : T, ...any?) -> ()
 
-export type user_get<T> = (current_value : T, ...any?) -> T
-export type user_set<T> = (new_value : T, ...any?) -> T
-
+-- @type immutable_prop
+-- Public interface of an immutable prop, intended to be read-only
 export type immutable_prop<T> = 
 {
     get : get<T>,
@@ -24,6 +23,8 @@ export type immutable_prop<T> =
     changed : restricted_signal,
 }
 
+-- @type public_prop
+-- Public interface of a mutable prop
 export type public_prop<T> = 
 {
     get : get<T>,
@@ -32,16 +33,23 @@ export type public_prop<T> =
     changed : restricted_signal,
 }
 
-export type middleware<T> = (value : T, ...any?) -> {
+-- @type middleware_return
+-- Return type of a middleware function
+-- value : The value that will be passed to the next middleware
+-- cancel : If true, the middleware chain will be stopped
+export type middleware_return<T> = {
     value : T,
     cancel : boolean
 }
 
+export type middleware<T> = (value : T, ...any?) -> middleware_return<T>
+
+-- @type middleware_obj
+-- A proxy object that manages a list of middleware functions
 export type middleware_obj<T> = 
 {
-    list : {
-        [number] : middleware<T>
-    },
+
+    get : (index : number) -> middleware<T>,
 
     add : (middleware : middleware<T>, index : number?) -> (),
     remove : (index : number) -> (),
@@ -49,6 +57,34 @@ export type middleware_obj<T> =
     clear : () -> (),
 
     apply : (value : T, ...any?) -> T,
+}
+
+export type private_middleware_obj<T> = 
+{
+    __list : {
+        [number] : middleware<T>
+    },
+
+    get : (index : number) -> middleware<T>,
+
+    add : (middleware : middleware<T>, index : number?) -> (),
+    remove : (index : number) -> (),
+
+    clear : () -> (),
+
+    apply : (value : T, ...any?) -> T,
+}
+
+-- @type middleware_init
+-- Initial middleware that will be applied to the prop
+-- Optional parameter when creating a prop
+export type middleware_init<T> = {
+    get : {
+        [number] : middleware<T>
+    }?,
+    set : {
+        [number] : middleware<T>
+    }?
 }
 
 export type prop<T> = 

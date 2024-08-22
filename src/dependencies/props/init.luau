@@ -13,9 +13,6 @@ type restricted_signal = signal.restricted_signal
 export type get<T> = props_types.get<T>
 export type set<T> = props_types.set<T>
 
-export type user_get<T> = props_types.user_get<T>
-export type user_set<T> = props_types.user_set<T>
-
 export type immutable_prop<T> = props_types.immutable_prop<T>
 export type prop<T> = props_types.prop<T>
 
@@ -23,21 +20,17 @@ export type object_base<T> = props_types.object_base<T>
 
 export type middleware<T> = props_types.middleware<T>
 export type middleware_obj<T> = props_types.middleware_obj<T>
-export type middleware_init<T> = {
-    get : {
-        [number] : middleware<T>
-    },
-    set : {
-        [number] : middleware<T>
-    }
-}
+
+export type middleware_init<T> = props_types.middleware_init<T>
 
 ----------------------------------------------------------------------------------------------------------------
 
 local function new_middleware_obj<T>(list : {[number] : middleware<T>}?) : middleware_obj<T>
-    local local_list = list or {}
+    local local_list : {
+        [number] : middleware<T>
+    } = list or {}
 
-    local local_add = function<T>(middleware : middleware<T>, index : number?)
+    local function add(middleware : middleware<T>, index : number?)
         if index then
             table.insert(local_list, index, middleware)
         else
@@ -45,15 +38,19 @@ local function new_middleware_obj<T>(list : {[number] : middleware<T>}?) : middl
         end
     end
 
-    local local_remove = function<T>(index : number)
+    local function remove(index : number)
         table.remove(local_list, index)
     end
+
+    local function get(index : number) : middleware<T>
+        return local_list[index]
+    end
     
-    local local_clear = function()
+    local function clear()
         local_list = {}
     end
 
-    local local_apply = function<T>(value : T, ... : any?): T
+    local function apply(value : T, ... : any?): T
         local current_value = value
         
         for _, middleware in ipairs(local_list) do
@@ -71,30 +68,45 @@ local function new_middleware_obj<T>(list : {[number] : middleware<T>}?) : middl
 
     return {
         list = local_list,
-        add = local_add,
-        remove = local_remove,
-        clear = local_clear,
-        apply = local_apply
+
+        add = add,
+        remove = remove,
+        get = get,
+        clear = clear,
+
+        apply = apply
     }
 end
 
 ----------------------------------------------------------------------------------------------------------------
 
 local function new_prop<T>(init_value : T, middleware : middleware_init<T>?) : prop<T>
+
+    local prop : prop<T> = nil
     local current_value = init_value
 
+    --[[----------------------------------------------------------------------]]--
+
     local get = function() : T
-        return current_value
+        local value = prop.middleware.get.apply(current_value)
+        return value
     end
 
     local set = function(new_value : T, ... : any?)
-        current_value = new_value
+        local value = prop.middleware.get.apply(new_value, ...)
+        current_value = value
     end
+
+    --[[----------------------------------------------------------------------]]--
 
     local get_middleware_obj = new_middleware_obj(if middleware then middleware.get else nil)
     local set_middleware_obj = new_middleware_obj(if middleware then middleware.set else nil)
 
+    --[[----------------------------------------------------------------------]]--
+
     local changed = signal()
+
+    --[[----------------------------------------------------------------------]]--
 
     local immutable = {
         get = get,
@@ -109,7 +121,9 @@ local function new_prop<T>(init_value : T, middleware : middleware_init<T>?) : p
         changed = changed.Restricted
     }
 
-    return {
+    --[[----------------------------------------------------------------------]]--
+
+    prop = {
         get = get,
         set = set,
 
@@ -123,6 +137,10 @@ local function new_prop<T>(init_value : T, middleware : middleware_init<T>?) : p
         immutable = immutable,
         public = public
     }
+
+    --[[----------------------------------------------------------------------]]--
+
+    return prop
 end
 
 ----------------------------------------------------------------------------------------------------------------
