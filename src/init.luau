@@ -38,6 +38,10 @@ export type fire<T> = signal.fire<T>
 
 ---------------------------------------------------------------------------------------------------------------
 
+local function is_natural(n : number)
+    return (n > 0 and n % 1 == n)
+end
+
 local function update(input : InputObject, drag_start : Vector3, start_pos : UDim2) : UDim2?
     if currently_dragging then
         local self = currently_dragging
@@ -195,22 +199,20 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
 
     --[[----------------------------------------------------------------------]]--
 
-    local rate_limit_set = function(new_value : number) : number
-        local current_value : number = dragger.rate_limit.get()
-
-        if new_value < 1 then
-            warn("Rate limit must be greater than or equal to 1.")
-            return current_value
-        end
-
-        if new_value % 1 ~= 0 then
-            warn("Rate limit must be an integer.")
-            return current_value
-        end
-
-        return new_value
-    end
-
+    local rate_limit_info = {
+        get = {},
+        set = {
+            function(new_value : number)
+                return if not is_natural(new_value) then {
+                    value = dragger.rate_limit.get(),
+                    cancel = true
+                } else {
+                    value = new_value,
+                    cancel = false
+                }
+            end
+        }
+    }
 
     local function object_changed(new : GuiObject, previous : GuiObject?)
         dragger:disable()
@@ -242,7 +244,7 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         dragged = dragged_internal.Restricted,
         drag_ended = drag_end_internal.Restricted,
 
-        rate_limit = props(info.rate_limit or 1, nil, rate_limit_set),
+        rate_limit = props(info.rate_limit or 1, rate_limit_info),
         update = props(info.update or true),
 
         dragging = dragging_internal.immutable,

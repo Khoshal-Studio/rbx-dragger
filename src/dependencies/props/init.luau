@@ -21,52 +21,108 @@ export type prop<T> = props_types.prop<T>
 
 export type object_base<T> = props_types.object_base<T>
 
+export type middleware<T> = props_types.middleware<T>
+export type middleware_obj<T> = props_types.middleware_obj<T>
+export type middleware_init<T> = {
+    get : {
+        [number] : middleware<T>
+    },
+    set : {
+        [number] : middleware<T>
+    }
+}
+
 ----------------------------------------------------------------------------------------------------------------
 
-local default_proxy = function<T>(current_value : T, ... : any?): T
-    return current_value
+local function new_middleware_obj<T>(list : {[number] : middleware<T>}?) : middleware_obj<T>
+    local local_list = list or {}
+
+    local local_add = function<T>(middleware : middleware<T>, index : number?)
+        if index then
+            table.insert(local_list, index, middleware)
+        else
+            table.insert(local_list, middleware)
+        end
+    end
+
+    local local_remove = function<T>(index : number)
+        table.remove(local_list, index)
+    end
+    
+    local local_clear = function()
+        local_list = {}
+    end
+
+    local local_apply = function<T>(value : T, ... : any?): T
+        local current_value = value
+        
+        for _, middleware in ipairs(local_list) do
+            local result = middleware(current_value, ...)
+
+            if result.cancel then
+                break
+            end
+
+            current_value = result.value
+        end
+
+        return current_value
+    end
+
+    return {
+        list = local_list,
+        add = local_add,
+        remove = local_remove,
+        clear = local_clear,
+        apply = local_apply
+    }
 end
 
 ----------------------------------------------------------------------------------------------------------------
 
-local function new_prop<T>(init_value : T, get_handler : user_get<T>?, set_handler : user_set<T>?) : prop<T>
-    local get = get_handler or default_proxy :: any
-    local set = set_handler or default_proxy :: any
+local function new_prop<T>(init_value : T, middleware : middleware_init<T>?) : prop<T>
+    local current_value = init_value
 
-    local prop : prop<T> = nil
-    local current_value : T = init_value
-
-    local prop_signal = signal()
-    local restricted_signal = prop_signal.Restricted
-
-    local function get_proxy(...: any): T
-        return get(current_value, ...)
+    local get = function() : T
+        return current_value
     end
 
-    local function set_proxy(new_value : T, ...: any): ()
-        local value = set(new_value, ...)
-        if value == current_value then
-            return
-        end
-        
-        local previous_value = current_value
-        current_value = set(new_value, ...)
-        
-        prop.changed:Fire(current_value, previous_value)
+    local set = function(new_value : T, ... : any?)
+        current_value = new_value
     end
 
-    prop = {
-        get = get_proxy,
-        set = set_proxy,
-        changed = prop_signal,
+    local get_middleware_obj = new_middleware_obj(if middleware then middleware.get else nil)
+    local set_middleware_obj = new_middleware_obj(if middleware then middleware.set else nil)
 
-        immutable = {
-            get = get_proxy,
-            changed = restricted_signal
-        }
+    local changed = signal()
+
+    local immutable = {
+        get = get,
+        
+        changed = changed.Restricted
     }
 
-    return prop
+    local public = {
+        get = get,
+        set = set,
+
+        changed = changed.Restricted
+    }
+
+    return {
+        get = get,
+        set = set,
+
+        middleware = {
+            get = get_middleware_obj,
+            set = set_middleware_obj
+        },
+
+        changed = changed,
+        
+        immutable = immutable,
+        public = public
+    }
 end
 
 ----------------------------------------------------------------------------------------------------------------
