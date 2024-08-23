@@ -199,17 +199,31 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
 
     --[[----------------------------------------------------------------------]]--
 
+    local function cancel(key : string)
+        return {
+            value = (dragger :: any)[key].get(),
+            cancel = true
+        }
+    end
+
+    local function package(value : any)
+        return {
+            value = value,
+            cancel = false
+        }
+    end
+
+    --[[----------------------------------------------------------------------]]--
+
     local rate_limit_info = {
         get = {},
         set = {
             function(new_value : number)
-                return if not is_natural(new_value) then {
-                    value = dragger.rate_limit.get(),
-                    cancel = true
-                } else {
-                    value = new_value,
-                    cancel = false
-                }
+                if not is_natural(new_value) then
+                    return cancel("rate_limit")
+                end
+
+                return package(new_value)
             end
         }
     }
