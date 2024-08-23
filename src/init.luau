@@ -227,13 +227,27 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         }
     }
 
-    local function object_changed(new : GuiObject, previous : GuiObject?)
-        dragger:disable()
+    local object_info = {
+        set = {
+            function(new_value : GuiObject)
+                if not (typeof(new_value) == "Instance" and new_value:IsA("GuiObject")) then
+                    return cancel("object")
+                end
 
-        if dragger.enabled.get() then
-            dragger:enable()
-        end
-    end
+                return package(new_value)
+            end,
+
+            function(new_value : GuiObject)
+                dragger:disable()  
+
+                if dragger.enabled.get() then
+                    dragger:enable()
+                end
+
+                return package(new_value)
+            end
+        }
+    }
 
     --[[----------------------------------------------------------------------]]--
 
@@ -250,7 +264,7 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         dragging_internal = dragging_internal,
         drag_count_internal = drag_count_internal,
 
-        object = props(info.object),
+        object = props(info.object, object_info),
         target = props(info.target or info.object),
 
         drag_started = drag_start_internal.Restricted,
@@ -272,10 +286,6 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
             disable_dragger(self)
         end
     } :: any
-
-    --[[----------------------------------------------------------------------]]--
-
-    dragger.object.changed:Connect(object_changed)
 
     --[[----------------------------------------------------------------------]]--
 
