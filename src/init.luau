@@ -216,7 +216,6 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
     --[[----------------------------------------------------------------------]]--
 
     local rate_limit_info = {
-        get = {},
         set = {
             function(new_value : number)
                 if not is_natural(new_value) then
