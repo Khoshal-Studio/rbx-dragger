@@ -84,6 +84,7 @@ local function new_prop<T>(init_value : T, middleware : middleware_init<T>?) : p
 
     local prop : prop<T> = nil
     local current_value = init_value
+    local changed = signal()
 
     --[[----------------------------------------------------------------------]]--
 
@@ -94,18 +95,22 @@ local function new_prop<T>(init_value : T, middleware : middleware_init<T>?) : p
 
     local set = function(new_value : T, ... : any?)
         local value = prop.middleware.get.apply(new_value, ...)
+
+        if value == current_value then
+            return
+        end
+
+        local previous_value = current_value
         current_value = value
+        
+        changed:Fire(current_value, previous_value)
     end
 
     --[[----------------------------------------------------------------------]]--
 
     local get_middleware_obj = new_middleware_obj(if middleware then middleware.get else nil)
     local set_middleware_obj = new_middleware_obj(if middleware then middleware.set else nil)
-
-    --[[----------------------------------------------------------------------]]--
-
-    local changed = signal()
-
+    
     --[[----------------------------------------------------------------------]]--
 
     local immutable = {
