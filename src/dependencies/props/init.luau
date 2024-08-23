@@ -5,10 +5,10 @@
 local props_types : nil = require(script:WaitForChild("props_types"))
 local signal = require(script.Parent:WaitForChild("signal"))
 
+----------------------------------------------------------------------------------------------------------------
+
 type signal = signal.signal
 type restricted_signal = signal.restricted_signal
-
-----------------------------------------------------------------------------------------------------------------
 
 export type get<T> = props_types.get<T>
 export type set<T> = props_types.set<T>
@@ -85,15 +85,21 @@ local function new_prop<T>(init_value : T, middleware : middleware_init<T>?) : p
     local prop : prop<T> = nil
     local current_value = init_value
     local changed = signal()
+    local init_type = typeof(init_value)
 
     --[[----------------------------------------------------------------------]]--
 
-    local get = function() : T
-        local value = prop.middleware.get.apply(current_value)
+    local get = function(... : any?) : T
+        local value = prop.middleware.get.apply(current_value, ...)
         return value
     end
 
     local set = function(new_value : T, ... : any?)
+        if typeof(new_value) ~= init_type then
+            warn("Invalid type for prop, expected: " .. init_type .. ", got: " .. typeof(new_value))
+            return
+        end
+
         local value = prop.middleware.get.apply(new_value, ...)
 
         if value == current_value then
