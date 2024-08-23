@@ -51,9 +51,9 @@ export type dragger =
 
 export type internal_dragger = dragger & 
 {
-    input_began : RBXScriptConnection,
-    input_changed : RBXScriptConnection,
-    input_changed_2 : RBXScriptConnection,
+    input_began : RBXScriptConnection?,
+    input_changed : RBXScriptConnection?,
+    input_changed_2 : RBXScriptConnection?,
 
     drag_start_internal : signal,
     drag_end_internal : signal,

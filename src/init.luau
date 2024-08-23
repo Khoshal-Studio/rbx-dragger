@@ -42,6 +42,13 @@ local function is_natural(n : number)
     return (n > 0 and n % 1 == n)
 end
 
+local function package(value : any)
+    return {
+        value = value,
+        cancel = false
+    }
+end
+
 local function update(input : InputObject, drag_start : Vector3, start_pos : UDim2) : UDim2?
     if currently_dragging then
         local self = currently_dragging
@@ -144,9 +151,11 @@ end
     Disables the dragger from dragging the target object.
 ]=]--
 local function disable_dragger(self : internal_dragger) : ()
-    self.input_began:Disconnect()
-    self.input_changed:Disconnect()
-    self.input_changed_2:Disconnect()
+    if self.enabled.get() and self.input_began and self.input_changed and self.input_changed_2 then
+        self.input_began:Disconnect()
+        self.input_changed:Disconnect()
+        self.input_changed_2:Disconnect()
+    end
 
     if self.dragging.get() then
         self.dragging_internal.set(false)
@@ -206,13 +215,6 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         }
     end
 
-    local function package(value : any)
-        return {
-            value = value,
-            cancel = false
-        }
-    end
-
     --[[----------------------------------------------------------------------]]--
 
     local rate_limit_info = {
@@ -230,24 +232,24 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
     local object_info = {
         set = {
             function(new_value : GuiObject)
-                if not (typeof(new_value) == "Instance" and new_value:IsA("GuiObject")) then
+                if not new_value:IsA("GuiObject") then
                     return cancel("object")
-                end
-
-                return package(new_value)
-            end,
-
-            function(new_value : GuiObject)
-                dragger:disable()  
-
-                if dragger.enabled.get() then
-                    dragger:enable()
                 end
 
                 return package(new_value)
             end
         }
     }
+
+    --[[----------------------------------------------------------------------]]--
+
+    local function object_changed(new_value : GuiObject)
+        dragger:disable()  
+
+        if dragger.enabled.get() then
+            dragger:enable()
+        end
+    end
 
     --[[----------------------------------------------------------------------]]--
 
@@ -272,7 +274,7 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         drag_ended = drag_end_internal.Restricted,
 
         rate_limit = props(info.rate_limit or 1, rate_limit_info),
-        update = props(info.update or true),
+        update = props((info.update or true) :: any),
 
         dragging = dragging_internal.immutable,
         drag_count = drag_count_internal.immutable,
@@ -285,7 +287,11 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         disable = function(self : any) : ()
             disable_dragger(self)
         end
-    } :: any
+    }
+
+    --[[----------------------------------------------------------------------]]--
+
+    dragger.object.changed:Connect(object_changed)
 
     --[[----------------------------------------------------------------------]]--
 
