@@ -37,12 +37,19 @@ export type public_prop<T> =
 -- Return type of a middleware function
 -- value : The value that will be passed to the next middleware
 -- cancel : If true, the middleware chain will be stopped
-export type middleware_return<T> = {
+export type middleware_return<T> = 
+{
     value : T,
     cancel : boolean
 }
 
 export type middleware<T> = (value : T, ...any?) -> middleware_return<T>
+
+export type middleware_info<T> = 
+{
+    get : middleware_obj<T>,
+    set : middleware_obj<T>,
+}
 
 -- @type middleware_obj
 -- A proxy object that manages a list of middleware functions
@@ -62,7 +69,8 @@ export type middleware_obj<T> =
 -- @type middleware_init
 -- Initial middleware that will be applied to the prop
 -- Optional parameter when creating a prop
-export type middleware_init<T> = {
+export type middleware_init<T> = 
+{
     get : {
         [number] : middleware<T>
     }?,
@@ -76,10 +84,7 @@ export type prop<T> =
     get : get<T>,
     set : set<T>,
 
-    middleware : {
-        get : middleware_obj<T>,
-        set : middleware_obj<T>,
-    },
+    middleware : middleware_info<T>,
 
     changed : signal,
 
