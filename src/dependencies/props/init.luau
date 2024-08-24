@@ -38,6 +38,12 @@ local function new_middleware_obj<T>(list : {[number] : middleware<T>}?) : middl
         end
     end
 
+    local function add_list(list : {[number] : middleware<T>})
+        for _, middleware in ipairs(list) do
+            table.insert(local_list, middleware)
+        end
+    end
+
     local function remove(index : number)
         table.remove(local_list, index)
     end
@@ -67,13 +73,11 @@ local function new_middleware_obj<T>(list : {[number] : middleware<T>}?) : middl
     end
 
     return {
-        list = local_list,
-
         add = add,
+        add_list = add_list,
         remove = remove,
         get = get,
         clear = clear,
-
         apply = apply
     }
 end

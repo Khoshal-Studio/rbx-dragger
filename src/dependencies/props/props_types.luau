@@ -48,26 +48,10 @@ export type middleware<T> = (value : T, ...any?) -> middleware_return<T>
 -- A proxy object that manages a list of middleware functions
 export type middleware_obj<T> = 
 {
-
     get : (index : number) -> middleware<T>,
 
     add : (middleware : middleware<T>, index : number?) -> (),
-    remove : (index : number) -> (),
-
-    clear : () -> (),
-
-    apply : (value : T, ...any?) -> T,
-}
-
-export type private_middleware_obj<T> = 
-{
-    __list : {
-        [number] : middleware<T>
-    },
-
-    get : (index : number) -> middleware<T>,
-
-    add : (middleware : middleware<T>, index : number?) -> (),
+    add_list : (list : {[number] : middleware<T>}) -> (),
     remove : (index : number) -> (),
 
     clear : () -> (),
