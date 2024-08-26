@@ -1,6 +1,10 @@
 {
-    "name": "dragger",
+
+    "name": "project",
     "tree": {
-        "$path": "src"
+        "$className": "DataModel",
+        "dragger" : {
+            "$path": "src"
+        }
     }
 }
