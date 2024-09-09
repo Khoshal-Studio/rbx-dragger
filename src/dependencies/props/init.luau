@@ -104,7 +104,7 @@ local function new_prop<T>(init_value : T, middleware : middleware_init<T>?) : p
             return
         end
 
-        local value = prop.middleware.get.apply(new_value, ...)
+        local value = prop.middleware.set.apply(new_value, ...)
 
         if value == current_value then
             return
