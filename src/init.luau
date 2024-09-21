@@ -312,7 +312,7 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         drag_ended = drag_end_internal.Restricted,
 
         rate_limit = props(info.rate_limit or 1, rate_limit_info),
-        update = props((info.update or true) :: any),
+        update = props((if info.update == nil then true else info.update) ::),
 
         dragging = dragging_internal.immutable,
         drag_count = drag_count_internal.immutable,
