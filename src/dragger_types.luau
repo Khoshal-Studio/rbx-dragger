@@ -33,6 +33,14 @@ export type dragger_info =
     update : boolean?, -- default true
     drag_mode : drag_mode?, -- default "plane"
     drag_axis : unit_vector?, -- default Vector2.new(1, 0)
+
+    bounded : boolean?, -- default false
+    bound_mode : "udim" | "object" | nil, -- default "udim"
+    bound_box : {
+        position : UDim2, -- default Vector2.new(0, 0)
+        size : UDim2, -- default Vector2.new(1, 1)
+    }?, -- default UDim2.new(0, 0, 0, 0)
+    bound_object : GuiObject?, -- default nil
 }
 
 export type dragger = 
@@ -42,6 +50,14 @@ export type dragger =
 
     drag_mode : prop<drag_mode>,
     drag_axis : prop<unit_vector>,
+
+    -- bounded : prop<boolean>,
+    -- bound_mode : prop<"udim" | "object">,
+    -- bound_box : {
+    --     position : prop<UDim2>,
+    --     size : prop<UDim2>,
+    -- },
+    -- bound_object : prop<GuiObject>,
 
     rate_limit : prop<number>,
     update : prop<boolean?>,

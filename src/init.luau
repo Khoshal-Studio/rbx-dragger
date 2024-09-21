@@ -40,7 +40,8 @@ export type fire<T> = signal.fire<T>
 
 local atan2 = math.atan2
 local UDim2_new = UDim2.new
-local sqrt = math.sqrt
+local Vector2_new = Vector2.new
+local deg = math.deg
 
 local function is_natural(n : number)
     return (n > 0 and n % 1 == n)
@@ -53,40 +54,51 @@ local function package(value : any)
     }
 end
 
-local function update(input : InputObject, drag_start : Vector3, start_pos : UDim2) : UDim2?
+local function get_rotate_angle(self : dragger, input: InputObject, drag_start : Vector3, delta : Vector3)
+	local start_angle = atan2(drag_start.Y, drag_start.X)
+	local current_angle = atan2(delta.Y, delta.X)
+
+	local angle = deg(current_angle + start_angle)
+	
+    return angle
+end
+
+local function update(input: InputObject, drag_start: Vector3, start_pos: UDim2): (UDim2?, number?)
     if currently_dragging then
         local self = currently_dragging
 
-        local delta : Vector3 = input.Position - drag_start
+        local delta: Vector3 = input.Position - drag_start
         local new_position : UDim2 = self.object.get().Position
-        local new_rotation : number = self.object.get().Rotation
-        
+        local new_rotation : number = self.target.get().Rotation
+
         if self.drag_mode.get() == "plane" then
             new_position = UDim2_new(start_pos.X.Scale, start_pos.X.Offset + delta.X, start_pos.Y.Scale, start_pos.Y.Offset + delta.Y)
-        elseif self.drag_mode.get() == "linear" then
-            local axis : Vector2 = self.drag_axis.get()
-            local dot : number = axis.X * delta.X + axis.Y * delta.Y
-            local magnitude : number = sqrt(axis.X^2 + axis.Y^2)
-            local distance : number = dot / magnitude
 
-            new_position = UDim2_new(start_pos.X.Scale, start_pos.X.Offset + distance, start_pos.Y.Scale, start_pos.Y.Offset)
+        elseif self.drag_mode.get() == "linear" then
+            local axis: Vector2 = self.drag_axis.get().Unit  
+
+			local projected_delta = axis.X * delta.X + axis.Y * delta.Y
+			
+            new_position = UDim2_new(
+                start_pos.X.Scale, start_pos.X.Offset + axis.X * projected_delta,
+                start_pos.Y.Scale, start_pos.Y.Offset + axis.Y * projected_delta
+            )
+
         elseif self.drag_mode.get() == "rotate" then
-            local extra_rotation : number = math.deg(atan2(delta.Y, delta.X))
-            
-            new_rotation = new_rotation + extra_rotation
+            new_rotation = get_rotate_angle(self, input, drag_start, delta)
         end
 
-        
         if self.update.get() then
             self.target.get().Position = new_position
             self.target.get().Rotation = new_rotation
         end
 
-        return new_position
+        return new_position, new_rotation
     end
 
     return nil
 end
+
 
 --[=[
     Enables the dragger to start dragging the target object.
@@ -161,8 +173,8 @@ local function dragger_enable(self : internal_dragger, key_code : Enum.KeyCode?)
                 return
             end
 
-            local new_position : UDim2? = update(input, drag_start, start_pos)
-            self.dragged_internal:Fire(new_position)
+            local new_position, new_rotation = update(input, drag_start, start_pos)
+            self.dragged_internal:Fire(new_position, new_rotation)
         end
     end)
 
@@ -282,7 +294,7 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         input_changed_2 = nil,
 
         drag_mode = props(info.drag_mode or "plane" :: any),
-        drag_axis = props(info.drag_axis or Vector2.new(1, 0)),
+        drag_axis = props(info.drag_axis or Vector2_new(1, 0)),
 
         drag_start_internal = drag_start_internal,
         drag_end_internal = drag_end_internal,
