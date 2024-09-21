@@ -20,18 +20,28 @@ export type fire<T> = signal.fire<T>
 
 ---------------------------------------------------------------------------------------
 
+export type unit_vector = Vector2
+
+export type drag_mode = "plane" | "linear" | "rotate"
+export type drag_axis = unit_vector
+
 export type dragger_info = 
 {
     object : GuiObject,
-    target : GuiObject?,
-    rate_limit : number?,
-    update : boolean?,
+    target : GuiObject?, -- default object
+    rate_limit : number?, -- default 1
+    update : boolean?, -- default true
+    drag_mode : drag_mode?, -- default "plane"
+    drag_axis : unit_vector?, -- default Vector2.new(1, 0)
 }
 
 export type dragger = 
 {
     object : prop<GuiObject>,
     target : prop<GuiObject>,
+
+    drag_mode : prop<drag_mode>,
+    drag_axis : prop<unit_vector>,
 
     rate_limit : prop<number>,
     update : prop<boolean?>,
