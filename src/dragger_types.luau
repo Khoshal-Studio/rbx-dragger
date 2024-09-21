@@ -23,7 +23,6 @@ export type fire<T> = signal.fire<T>
 export type unit_vector = Vector2
 
 export type drag_mode = "plane" | "linear" | "rotate"
-export type drag_axis = unit_vector
 
 export type dragger_info = 
 {
@@ -32,7 +31,7 @@ export type dragger_info =
     rate_limit : number?, -- default 1
     update : boolean?, -- default true
     drag_mode : drag_mode?, -- default "plane"
-    drag_axis : unit_vector?, -- default Vector2.new(1, 0)
+    drag_axis : Vector2?, -- default Vector2.new(1, 0)
 
     bounded : boolean?, -- default false
     bound_mode : "udim" | "object" | nil, -- default "udim"
