@@ -40,11 +40,20 @@ export type fire<T> = signal.fire<T>
 
 local atan2 = math.atan2
 local UDim2_new = UDim2.new
+local UDim2_fromOffset = UDim2.fromOffset
+local UDim2_fromScale = UDim2.fromScale
 local Vector2_new = Vector2.new
 local deg = math.deg
 
+---------------------------------------------------------------------------------------------------------------
+
 local function is_natural(n : number)
     return (n > 0 and n % 1 == n)
+end
+
+local function udim2_to_absolute(udim : UDim2, screen_size : Vector2?) : Vector2
+    local _screen_size = screen_size or workspace.CurrentCamera.ViewportSize
+    return Vector2_new(udim.X.Scale * _screen_size.X + udim.X.Offset, udim.Y.Scale * _screen_size.Y + udim.Y.Offset)
 end
 
 local function package(value : any)
@@ -63,6 +72,22 @@ local function get_rotate_angle(self : dragger, input: InputObject, drag_start :
     return angle
 end
 
+local function constrain_udim(bounding_box : { position : UDim2, size : UDim2 }, position : UDim2) : UDim2
+    local absolute_point : Vector2 = udim2_to_absolute(position)
+    local absolute_position : Vector2 = udim2_to_absolute(bounding_box.position)
+    local absolute_size : Vector2 = udim2_to_absolute(bounding_box.size)
+
+    local e1 = absolute_position.X - absolute_size.X
+    local e2 = absolute_position.X + absolute_size.X
+    local e4 = absolute_position.Y - absolute_size.Y
+    local e3 = absolute_position.Y + absolute_size.Y
+
+    return UDim2_fromOffset(
+        math.clamp(absolute_point.X, e1, e2),
+        math.clamp(absolute_point.Y, e4, e3)
+    )
+end
+
 local function update(input: InputObject, drag_start: Vector3, start_pos: UDim2): (UDim2?, number?)
     if currently_dragging then
         local self = currently_dragging
@@ -71,12 +96,12 @@ local function update(input: InputObject, drag_start: Vector3, start_pos: UDim2)
         local new_position : UDim2 = self.object.get().Position
         local new_rotation : number = self.target.get().Rotation
 
+        -- Determine the new position based on drag mode
         if self.drag_mode.get() == "plane" then
             new_position = UDim2_new(start_pos.X.Scale, start_pos.X.Offset + delta.X, start_pos.Y.Scale, start_pos.Y.Offset + delta.Y)
 
         elseif self.drag_mode.get() == "linear" then
             local axis: Vector2 = self.drag_axis.get().Unit  
-
 			local projected_delta = axis.X * delta.X + axis.Y * delta.Y
 			
             new_position = UDim2_new(
@@ -88,6 +113,38 @@ local function update(input: InputObject, drag_start: Vector3, start_pos: UDim2)
             new_rotation = get_rotate_angle(self, input, drag_start, delta)
         end
 
+        -- Clamping based on bounds
+        local bounded : boolean = self.bounded.get()
+        
+        if bounded then
+            local bound_mode = self.bound_mode.get()
+
+            if bound_mode == "udim" then
+                -- Get the bounding box and viewport size for clamping
+                local bound_box = self.bound_box.get()
+                new_position = constrain_udim({
+                    position = bound_box.position.get(),
+                    size = bound_box.size.get()
+                }, new_position)
+
+            elseif bound_mode == "object" then
+                local bound_object : GuiObject? = self.bound_object.get()
+
+                if not bound_object then
+                    warn("Bound object is nil.")
+                else
+                    local bound_position : UDim2 = bound_object.Position
+                    local bound_size : UDim2 = bound_object.Size
+
+                    new_position = constrain_udim({
+                        position = bound_position,
+                        size = bound_size
+                    }, new_position)
+                end
+            end
+        end
+
+        -- Apply the new position and rotation if needed
         if self.update.get() then
             self.target.get().Position = new_position
             self.target.get().Rotation = new_rotation
@@ -98,6 +155,7 @@ local function update(input: InputObject, drag_start: Vector3, start_pos: UDim2)
 
     return nil
 end
+
 
 
 --[=[
@@ -296,6 +354,14 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         drag_mode = props(info.drag_mode or "plane" :: any),
         drag_axis = props(info.drag_axis or Vector2_new(1, 0)),
 
+        bounded = props((if info.bounded == nil then false else info.bounded)),
+        bound_mode = props(info.bound_mode or "udim" :: any),
+        bound_box = props({
+            position = props(if info.bound_box then info.bound_box.position else UDim2_fromScale(0.5, 0.5)),
+            size = props(if info.bound_box then info.bound_box.size else UDim2_fromScale(1, 1))
+        }).immutable,
+        bound_object = props(info.bound_object or nil),
+
         drag_start_internal = drag_start_internal,
         drag_end_internal = drag_end_internal,
         dragged_internal = dragged_internal,
@@ -312,7 +378,7 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
         drag_ended = drag_end_internal.Restricted,
 
         rate_limit = props(info.rate_limit or 1, rate_limit_info),
-        update = props((info.update or true) :: any),
+        update = props((if info.update == nil then true else info.update) :: any),
 
         dragging = dragging_internal.immutable,
         drag_count = drag_count_internal.immutable,

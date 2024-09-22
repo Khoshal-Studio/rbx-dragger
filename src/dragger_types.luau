@@ -50,13 +50,13 @@ export type dragger =
     drag_mode : prop<drag_mode>,
     drag_axis : prop<unit_vector>,
 
-    -- bounded : prop<boolean>,
-    -- bound_mode : prop<"udim" | "object">,
-    -- bound_box : {
-    --     position : prop<UDim2>,
-    --     size : prop<UDim2>,
-    -- },
-    -- bound_object : prop<GuiObject>,
+    bounded : prop<boolean>,
+    bound_mode : prop<"udim" | "object">,
+    bound_box : immutable_prop<{
+        position : prop<UDim2>,
+        size : prop<UDim2>
+    }>,
+    bound_object : prop<GuiObject?>,
 
     rate_limit : prop<number>,
     update : prop<boolean?>,
