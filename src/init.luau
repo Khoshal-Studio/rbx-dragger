@@ -584,7 +584,7 @@ module.new = function(info : dragger_info) : (boolean, dragger?)
 		drag_started = drag_start_internal.Restricted,
 		dragged = dragged_internal.Restricted,
 		drag_ended = drag_end_internal.Restricted,
-
+          
 		rate_limit = props(def("rate_limit"), rate_limit_info).public,
 		update = props(def("update")).public,
 
