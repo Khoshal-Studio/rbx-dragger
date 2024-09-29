@@ -253,6 +253,19 @@ local function update(input: InputObject, drag_start: Vector3, start_pos: UDim2)
 						new_position = UDim2_fromOffset(constrained_position.X, constrained_position.Y)
 					end
 				end
+            elseif bound_mode == "parent" then
+                local parent = object.Parent
+                if parent and parent:IsA("GuiObject") then
+                    local parent_size = parent.AbsoluteSize
+                    local parent_position = true_pos(parent)
+
+                    local constrained_position = constrain_vector2({
+                        position = parent_position,
+                        size = parent_size
+                    }, udim2_to_absolute(new_position))
+
+                    new_position = UDim2_fromOffset(constrained_position.X, constrained_position.Y)
+                end
 			elseif bound_mode == "custom" then
 				local transform_fn = self.custom_bound_fn.get()
 				new_position = transform_fn(new_position)

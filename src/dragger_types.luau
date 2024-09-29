@@ -25,7 +25,7 @@ export type unit_vector = Vector2
 
 export type drag_mode = "plane" | "linear" | "rotate"
 
-export type bound_mode = "box" | "object" | "custom"| "circle"
+export type bound_mode = "box" | "object" | "custom"| "circle" | "parent"
 
 export type relative_to = "screen" | "parent"
 
